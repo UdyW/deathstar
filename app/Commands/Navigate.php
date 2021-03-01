@@ -2,22 +2,13 @@
 
 namespace App\Commands;
 
+use App\Service\ClientRequestInterface;
 use GuzzleHttp\Client;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
-use Illuminate\Support\Facades\Http;
 
 class Navigate extends Command
 {
-
-    public $client;
-
-    public function __construct(Client $client)
-    {
-        $this->client = $client;
-        parent::__construct();
-    }
-
     /**
      * The signature of the command.
      *
@@ -35,19 +26,29 @@ class Navigate extends Command
     /**
      * Execute the console command.
      *
+     * @param ClientRequestInterface $request
      * @return mixed
      */
-    public function handle():void
+    public function handle(ClientRequestInterface $request):void
     {
-        $path = 'f';
+        $path = 'f'; //first move forward
         $responseCode = 0;
-        $currPos = 4;
+        $currPos = 4; //starting x coordinate
+
+        $this->output->progressStart(0); //initiate progressbar
+
+        //loop through untill 200 status code returns
         while($responseCode !== 200){
-            $response =  Http::get('https://deathstar.dev-tests.vp-ops.com/empire.php?name=udy&path='.$path);
-            $array = explode(PHP_EOL, $response->json()['map']);
-            $responseCode = $response->status();
-            if($responseCode === 417) {
+            $this->output->progressAdvance();
+            $response = $request->makeRequest($path); //make request to API
+            $array = explode(PHP_EOL, $response->json()['map']); //reading map
+            $responseCode = $response->status(); //get status code
+
+            if($responseCode === 417) { //handle crash
+                //checking available positions in the last array element i.e last step of the map
                 $movablePos = strpos(end($array), ' ');
+
+                //if the position is less that current position move to left, else move to right
                 $path = substr($path,0, -1);
                 if ($movablePos < $currPos) {
                     $path .= 'lf';
@@ -57,16 +58,13 @@ class Navigate extends Command
                     $currPos++;
                 }
             }
-            else {
+            else { //not 417 means we can move forward
                 $path .= 'f';
             }
         }
-
-//        $this->info('fffrffffflfffffffffffffffffffffffffffffffffffflffffffffffffffffffffffffffffffffffffffffffrfrfffffffffflffffflffffffffffffflffffrfrfrfffffffffffffflffllffffffffrffffffffffffffrffffffffflfffffffffffffffffffffffffffffflfffffrfrfffrffffffffffffrffflflfffflflfffffffrfffffflffrfrffffllffffffrffrfrffffffffffrffllfffrfffflfffffffllffffffffffffffffffffrfrfffffrffffflfffffffffffffffffffffflfffflfffffffffffffffffffffrfrffrfffffffffffffflfffffffflfflfffffrffrfffllffffrfrfrfffffffffffffflflflffffffffffffffffffrffflffrffffffffffffffffffffffffrfrfffrfffffflffffffffffffffffffffffff');
+        $this->output->progressFinish();
+        //return path
         $this->info($path);
-
-//        $response =  Http::get('https://deathstar.dev-tests.vp-ops.com/empire.php?name=udy&path=fffrffffflfffffffffffffffffffffffffffffffffffflffffffffffffffffffffffffffffffffffffffffffrfrfffffffffflffffflffffffffffffflffffrfrfrfffffffffffffflffllffffffffrffffffffffffffrffffffffflfffffffffffffffffffffffffffffflfffffrfrfffrffffffffffffrffflflfffflflfffffffrfffffflffrfrffffllffffffrffrfrffffffffffrffllfffrfffflfffffffllffffffffffffffffffffrfrfffffrffffflfffffffffffffffffffffflfffflfffffffffffffffffffffrfrffrfffffffffffffflfffffffflfflfffffrffrfffllffffrfrfrfffffffffffffflflflffffffffffffffffffrffflffrffffffffffffffffffffffffrfrfffrfffffflffffffffffffffffffffffff');
-
     }
 
     /**

@@ -6,5 +6,5 @@ namespace App\Service;
 
 interface ClientRequestInterface
 {
-    public function makeRequest();
+    public function makeRequest($path);
 }
