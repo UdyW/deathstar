@@ -48,8 +48,10 @@ class Navigate extends Command
                 //checking available positions in the last array element i.e last step of the map
                 $movablePos = strpos(end($array), ' ');
 
-                //if the position is less that current position move to left, else move to right
+                //this is a crash go back one step.
                 $path = substr($path,0, -1);
+
+                //if the position is less that current position move to left, else move to right
                 if ($movablePos < $currPos) {
                     $path .= 'lf';
                     $currPos--;
